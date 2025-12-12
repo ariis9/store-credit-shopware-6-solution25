@@ -2,6 +2,7 @@
 
 namespace StoreCredit\Command;
 
+use Shopware\Core\Framework\Api\Context\SystemSource;
 use Shopware\Core\Framework\Context;
 use StoreCredit\Service\OrderStateInstaller;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -28,7 +29,7 @@ class OrderStateInstallerCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $context = Context::createDefaultContext();
+        $context = new Context(new SystemSource());
 
         try {
             $this->orderStateInstaller->managePresaleStatuses($context, true);

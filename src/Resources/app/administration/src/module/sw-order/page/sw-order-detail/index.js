@@ -46,7 +46,6 @@ Component.override('sw-order-detail', {
 
     methods: {
         async onSaveEdits() {
-            console.log(this.orderTypePayment);
 
             if (this.isCreditCardOrder && this.isDetailsTabActive) {
                 this.createNotificationError({
@@ -68,15 +67,12 @@ Component.override('sw-order-detail', {
 
         async setZipCodeChangedFlag() {
             try {
-                console.log('Full Order Object:', this.order);
-                console.log('Current Custom Fields:', this.order.customFields);
 
                 if (!this.order.customFields) {
                     this.order.customFields = {};
                 }
                 this.order.customFields.zipCodeChanged = true;
 
-                console.log('Updated Custom Fields:', this.order.customFields);
 
                 await this.orderRepository.save([{
                     id: this.order.id,
@@ -88,7 +84,7 @@ Component.override('sw-order-detail', {
                 });
 
             } catch (error) {
-                console.log(error)
+                console.warn(error)
             }
         }
     }

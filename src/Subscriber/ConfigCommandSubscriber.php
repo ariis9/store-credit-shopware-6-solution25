@@ -31,7 +31,7 @@ class ConfigCommandSubscriber implements EventSubscriberInterface
     public function onConfigChange(SystemConfigChangedEvent $event): void
     {
         $key = 'StoreCredit.config.runInstallOrderStateCommand';
-        if ($event->getKey() !== $key || !$event->getValue()) {
+        if ($event->getKey() !== $key) {
             return;
         }
 

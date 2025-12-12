@@ -7,6 +7,8 @@ namespace StoreCredit\Subscriber;
 use Shopware\Core\Checkout\Order\OrderEvents;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Defaults;
+use Shopware\Core\Framework\Api\Context\AdminApiSource;
+use Shopware\Core\Framework\Api\Context\ContextSource;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\Context;
@@ -21,9 +23,11 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Shopware\Core\System\StateMachine\Transition;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Shopware\Core\System\NumberRange\ValueGenerator\NumberRangeValueGeneratorInterface;
+use Symfony\Component\Serializer\Attribute\DiscriminatorMap;
 
 class OrderEditSubscriber implements EventSubscriberInterface
 {
+    protected string $type;
     private EntityRepository $orderRepository;
     private EventDispatcherInterface $eventDispatcher;
     private StateMachineRegistry $stateMachineRegistry;
@@ -36,7 +40,7 @@ class OrderEditSubscriber implements EventSubscriberInterface
         StateMachineRegistry $stateMachineRegistry,
         EventDispatcherInterface $eventDispatcher,
         SystemConfigService $systemConfigService,
-        NumberRangeValueGeneratorInterface $numberRangeValueGenerator
+        NumberRangeValueGeneratorInterface $numberRangeValueGenerator,
     ) {
         $this->orderRepository           = $orderRepository;
         $this->stateMachineRegistry      = $stateMachineRegistry;
@@ -56,24 +60,24 @@ class OrderEditSubscriber implements EventSubscriberInterface
     {
         $postPurchaesEnabled = $this->systemConfigService->get('StoreCredit.config.postPurchaseFeatures');
 
-        if ($event->getContext()->getSource()->type !== 'admin-api') {
+        if (!$event->getContext()->getSource() instanceof AdminApiSource) {
             return;
         }
         if ($postPurchaesEnabled === false) {
             return;
         }
 
+        $orderIds = [];
         foreach ($event->getWriteResults() as $writeResult) {
-            if (!$writeResult instanceof EntityWriteResult || $writeResult->getEntityName() !== 'order') {
-                continue;
+            if ($writeResult->getEntityName() === 'order') {
+                $orderIds[] = $writeResult->getPrimaryKey();
             }
+        }
+        if (empty($orderIds)) {
+            return;
+        }
 
-
-            $orderId = $writeResult->getPrimaryKey();
-
-
-
-            $criteria = new Criteria([$orderId]);
+            $criteria = new Criteria($orderIds);
             $criteria->addAssociation('transactions.paymentMethod');
             $criteria->addAssociation('transactions.stateMachineState');
             $criteria->addAssociation('transactions.stateMachineState.stateMachine');
@@ -81,20 +85,17 @@ class OrderEditSubscriber implements EventSubscriberInterface
             $criteria->addAssociation('deliveries.shippingOrderAddress');
             $criteria->addAssociation('stateMachineState');
             $criteria->addAssociation('lineItems');
+            $orders = $this->orderRepository->search($criteria, $event->getContext());
 
-            $order = $this->orderRepository->search($criteria, $event->getContext())->last();
-            if (!$order instanceof OrderEntity) {
-                continue;
-            }
+        foreach ($orders as $order) {
+            /** @var OrderEntity $order */
             $orderNumber = $order->getOrderNumber();
             if (str_ends_with($orderNumber, '-R')) {
-                return;
+                continue;
             }
-
-            $stateTechnicalName = $order->getStateMachineState()->getTechnicalName();
-
-            if (!$stateTechnicalName && $stateTechnicalName !== "open") {
-                return;
+            $stateTechnicalName = $order->getStateMachineState()?->getTechnicalName();
+            if (!$stateTechnicalName || $stateTechnicalName !== 'open') {
+                continue;
             }
 
             $this->updateOrderTypePayment($order, $event->getContext());

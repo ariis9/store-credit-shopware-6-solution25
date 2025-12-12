@@ -47,6 +47,7 @@ class CartSubscriber implements EventSubscriberInterface
             $this->storeCreditManager->deductCredit(
                 $customerId,
                 abs($amountToDeduct),
+                $event->getContext(),
                 $orderId,
                 $currencyId,
                 'Store credit used for order payment'

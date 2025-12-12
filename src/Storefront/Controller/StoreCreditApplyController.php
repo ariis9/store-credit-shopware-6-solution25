@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Package('storefront')]
+#[Package('checkout')]
 #[Route(defaults: ['_routeScope' => ['storefront']])]
 class StoreCreditApplyController extends StorefrontController
 {
@@ -60,7 +60,7 @@ class StoreCreditApplyController extends StorefrontController
             return new RedirectResponse($this->generateUrl('frontend.checkout.confirm.page'));
         }
 
-        $creditBalance = $this->getCreditBalance($customer->getId());
+        $creditBalance = $this->getCreditBalance($customer->getId(), $context->getContext());
         $amountToApply = min($creditBalance, $amount);
 
         $cart = $this->cartService->getCart($context->getToken(), $context);
@@ -72,7 +72,7 @@ class StoreCreditApplyController extends StorefrontController
             $totalAppliedCredit += abs($lineItem->getPrice()->getTotalPrice());
         }
 
-        $maxCreditPerOrder = $this->systemConfigurationService->get('StoreCredit.config.maxCreditPerOrder');
+        $maxCreditPerOrder = $this->systemConfigurationService->get('StoreCredit.config.maxCreditPerOrder', $context->getSalesChannelId());
         if ($maxCreditPerOrder > 0) {
             $totalAfterApply = $totalAppliedCredit + $amountToApply;
             if ($totalAfterApply > $maxCreditPerOrder) {
@@ -106,12 +106,12 @@ class StoreCreditApplyController extends StorefrontController
         }
 
         $this->cartService->recalculate($cart, $context);
-        
+
         $this->addFlash('success', 'Store credit applied successfully.');
         return new RedirectResponse($this->generateUrl('frontend.checkout.confirm.page'));
     }
 
-    private function getCreditBalance(?string $customerId): float
+    private function getCreditBalance(?string $customerId, Context $context): float
     {
         if (!$customerId) {
             return 0.0;
@@ -119,7 +119,7 @@ class StoreCreditApplyController extends StorefrontController
 
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('customerId', $customerId));
-        $result = $this->storeCreditRepository->search($criteria, Context::createDefaultContext());
+        $result = $this->storeCreditRepository->search($criteria, $context);
         $storeCreditEntity = $result->first();
 
         return $storeCreditEntity ? (float)$storeCreditEntity->get('balance') : 0.0;
@@ -138,7 +138,7 @@ class StoreCreditApplyController extends StorefrontController
 
     private function hasRestrictedProductsInCart(SalesChannelContext $context): array|bool
     {
-        $restrictedProductIds = $this->systemConfigurationService->get('StoreCredit.config.restrictedProducts');
+        $restrictedProductIds = $this->systemConfigurationService->get('StoreCredit.config.restrictedProducts', $context->getSalesChannelId());
         if (empty($restrictedProductIds)) {
             return false;
         }
@@ -156,5 +156,4 @@ class StoreCreditApplyController extends StorefrontController
         }
         return !empty($restrictedProducts) ? $restrictedProducts : false;
     }
-
 }

@@ -4,14 +4,37 @@
     "type": "shopware-platform-plugin",
     "version": "1.0.2",
     "license": "MIT",
+    "authors": [
+      {
+        "name": "solution 25",
+        "role": "Manufacturer"
+      }
+    ],
     "require": {
-        "shopware/core": "~6.6.0"
+        "shopware/core": "~6.6.0",
+        "shopware/storefront": "~6.6.0"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^4.0",
+        "phpstan/phpstan": "^2.1"
     },
     "extra": {
         "shopware-plugin-class": "StoreCredit\\StoreCredit",
         "label": {
             "de-DE": "Store Credit",
             "en-GB": "Store Credit"
+        },
+        "description": {
+          "de-DE": "Verwalten Sie Guthaben für Retouren einfach. Admins weisen Kundenkonten Guthaben zu, das flexibel für zukünftige Einkäufe genutzt werden kann, bis der Betrag aufgebraucht ist.",
+          "en-GB": "Manage store credits for returns easily. Admins allocate credit to customer accounts, usable for future purchases until the balance is fully utilized. Alternative to refunds."
+        },
+        "manufacturerLink": {
+          "de-DE": "https://solution25.com/",
+          "en-GB": "https://solution25.com/en/home_en/"
+        },
+        "supportLink": {
+          "de-DE": "https://solution25.com/",
+          "en-GB": "https://solution25.com/en/home_en/"
         }
     },
     "autoload": {
@@ -22,6 +45,23 @@
     "autoload-dev": {
         "psr-4": {
             "StoreCredit\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@enable-prepush"
+        ],
+        "post-update-cmd": [
+            "@enable-prepush"
+        ],
+        "enable-prepush": [
+            "cp ./pre-push .git/hooks/pre-push",
+            "chmod +x .git/hooks/pre-push"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true
         }
     }
 }

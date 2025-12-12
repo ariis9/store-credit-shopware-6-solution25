@@ -13,16 +13,16 @@ class ValidateStoreCreditCartProcessor implements CartProcessorInterface
     private const FLAG = 'store-credit-validation.already-processed';
 
     public function process(
-        CartDataCollection  $data,
-        Cart                $original,
-        Cart                $toCalculate,
+        CartDataCollection $data,
+        Cart $original,
+        Cart $toCalculate,
         SalesChannelContext $context,
-        CartBehavior        $behavior): void
-    {
+        CartBehavior $behavior
+    ): void {
         if ($data->has(self::FLAG)) {
             return;
         }
-        
+
         if (!$this->shouldProcessCart()) {
             return;
         }
@@ -36,13 +36,13 @@ class ValidateStoreCreditCartProcessor implements CartProcessorInterface
             $shippingTax = $toCalculate->getDeliveries()->getShippingCosts()->getCalculatedTaxes()->first();
             $unitPrice = $toCalculate->getDeliveries()->getShippingCosts()->first();
 
-            if($shippingRate){
+            if ($shippingRate) {
                 $shippingRate = $shippingRate->getTaxRate();
             }
-            if($shippingTax){
+            if ($shippingTax) {
                 $shippingTax = $shippingTax->getTax();
             }
-            if($unitPrice){
+            if ($unitPrice) {
                 $unitPrice = $unitPrice->getUnitPrice();
             }
 

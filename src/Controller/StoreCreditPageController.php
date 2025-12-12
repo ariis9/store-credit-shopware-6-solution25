@@ -7,6 +7,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
+use StoreCredit\Core\Content\StoreCredit\StoreCreditEntity;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Storefront\Controller\StorefrontController;
@@ -37,10 +38,12 @@ class StoreCreditPageController extends StorefrontController
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter('customerId', $customerId));
         $storeCreditResult = $this->storeCreditRepository->search($criteria, $context->getContext());
+        /** @var StoreCreditEntity $storeCredit */
         $storeCredit       = $storeCreditResult->first();
 
         $historyCriteria = new Criteria();
         $historyCriteria->addSorting(new FieldSorting('createdAt', 'DESC'));
+        /* @phpstan-ignore-next-line */
         $historyCriteria->addFilter(new EqualsFilter('storeCreditId', $storeCredit?->getId()));
         $storeCreditsHistory = $this->storeCreditHistoryRepository->search($historyCriteria, $context->getContext())->getElements();
 

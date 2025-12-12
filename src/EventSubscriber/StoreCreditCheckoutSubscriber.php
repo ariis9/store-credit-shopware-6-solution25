@@ -9,18 +9,22 @@ use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Storefront\Page\Checkout\Confirm\CheckoutConfirmPageLoadedEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use StoreCredit\Service\StoreCreditManager;
+use Shopware\Core\System\SystemConfig\SystemConfigService;
 
 class StoreCreditCheckoutSubscriber implements EventSubscriberInterface
 {
     private StoreCreditManager $storeCreditManager;
     private CartService $cartService;
+    private SystemConfigService $systemConfigService;
 
     public function __construct(
         StoreCreditManager $storeCreditManager,
-        CartService $cartService
+        CartService $cartService,
+        SystemConfigService $systemConfigService
     ) {
         $this->storeCreditManager = $storeCreditManager;
         $this->cartService = $cartService;
+        $this->systemConfigService = $systemConfigService;
     }
 
     public static function getSubscribedEvents(): array
@@ -40,7 +44,7 @@ class StoreCreditCheckoutSubscriber implements EventSubscriberInterface
         }
 
         try {
-            $creditBalance = $this->storeCreditManager->getCreditBalance($customer->getId());
+            $creditBalance = $this->storeCreditManager->getCreditBalance($customer->getId(), $context->getContext());
             $cart = $this->cartService->getCart($context->getToken(), $context);
             $this->validateStoreCredits($cart, $creditBalance['balanceAmount'], $context);
 
@@ -48,6 +52,8 @@ class StoreCreditCheckoutSubscriber implements EventSubscriberInterface
                 'storeCreditBalance' => $creditBalance['balanceAmount'],
                 'storeCreditCurrencyId' => $creditBalance['balanceCurrencyId'],
                 'storeCreditId' => 'store-credit-discount',
+                'maxCreditPerOrder' => (float) $this->systemConfigService->get('StoreCredit.config.maxCreditPerOrder', $context->getSalesChannelId()),
+                'storeCreditExpandedByDefault' => (bool) $this->systemConfigService->get('StoreCredit.config.expandStoreCreditByDefault', $context->getSalesChannelId()),
             ]);
         } catch (\Exception $e) {
             // Still assign default values to prevent template errors
@@ -56,6 +62,7 @@ class StoreCreditCheckoutSubscriber implements EventSubscriberInterface
                 'storeCreditCurrencyId' => null,
                 'storeCreditId' => 'store-credit-discount',
                 'maxCreditPerOrder' => 0.0,
+                'storeCreditExpandedByDefault' => true,
             ]);
         }
     }
@@ -86,5 +93,4 @@ class StoreCreditCheckoutSubscriber implements EventSubscriberInterface
             $this->cartService->recalculate($cart, $context);
         }
     }
-
 }

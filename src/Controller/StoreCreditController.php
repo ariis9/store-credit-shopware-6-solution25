@@ -2,6 +2,7 @@
 
 namespace StoreCredit\Controller;
 
+use Shopware\Core\Framework\Context;
 use StoreCredit\Service\StoreCreditManager;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,7 +21,7 @@ class StoreCreditController
     }
 
     #[Route(path: '/api/store-credit/add', name: 'api.store.credit.add', methods: ['POST'])]
-    public function addCredit(Request $request): JsonResponse
+    public function addCredit(Request $request, Context $context): JsonResponse
     {
         $customerId = $request->get('customerId');
         $amount     = (float)$request->get('amount');
@@ -29,7 +30,7 @@ class StoreCreditController
         $currencyId = $request->get('currencyId');
 
         try {
-            $historyId = $this->storeCreditManager->addCredit($customerId, $orderId, $currencyId, $amount, $reason);
+            $historyId = $this->storeCreditManager->addCredit($customerId, $orderId, $currencyId, $amount, $context, $reason);
 
             return new JsonResponse(['success' => true, 'historyId' => $historyId]);
         } catch (\Exception $e) {
@@ -39,14 +40,14 @@ class StoreCreditController
 
 
     #[Route(path: '/api/store-credit/deduct', name: 'api.store.credit.deduct', methods: ['POST'])]
-    public function deductCredit(Request $request): JsonResponse
+    public function deductCredit(Request $request, Context $context): JsonResponse
     {
         $customerId = $request->get('customerId');
         $amount     = (float)$request->get('amount');
         $reason     = $request->get('reason');
 
         try {
-            $historyId = $this->storeCreditManager->deductCredit($customerId, $amount, null, null, $reason);
+            $historyId = $this->storeCreditManager->deductCredit($customerId, $amount, $context, null, null, $reason);
             return new JsonResponse(['success' => true, 'historyId' => $historyId]);
         } catch (\Exception $e) {
             return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);
@@ -54,12 +55,12 @@ class StoreCreditController
     }
 
     #[Route(path: '/api/store-credit/balance', name: 'api.store-credit.balance', methods: ['GET'])]
-    public function getCreditBalance(Request $request): JsonResponse
+    public function getCreditBalance(Request $request, Context $context): JsonResponse
     {
         $customerId = $request->get('customerId');
 
         try {
-            $balance = $this->storeCreditManager->getCreditBalance($customerId);
+            $balance = $this->storeCreditManager->getCreditBalance($customerId, $context);
 
             return new JsonResponse([
                 'success'    => true,

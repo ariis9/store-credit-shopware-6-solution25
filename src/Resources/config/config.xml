@@ -51,4 +51,14 @@
         </input-field>
     </card>
 
+    <card>
+        <title>Checkout behaviour</title>
+        <input-field type="bool">
+            <name>expandStoreCreditByDefault</name>
+            <label lang="en-GB">Expand store credit section by default</label>
+            <default>true</default>
+            <helpText lang="en-GB">If enabled, the store credit panel on checkout confirm will be expanded by default instead of collapsed.</helpText>
+        </input-field>
+    </card>
+
 </config>

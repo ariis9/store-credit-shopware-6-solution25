@@ -93,7 +93,6 @@ Component.register('sw-customer-grid', {
         },
 
         onPageChange(newPageData) {
-            console.log('Raw Page Change Event:', newPageData);
 
             if (typeof newPageData === 'object' && newPageData.page) {
                 newPageData = newPageData.page;
@@ -104,7 +103,6 @@ Component.register('sw-customer-grid', {
                 return;
             }
 
-            console.log('Page changed to:', newPageData);
             this.page = parseInt(newPageData, 10);
             this.fetchCustomers();
         },

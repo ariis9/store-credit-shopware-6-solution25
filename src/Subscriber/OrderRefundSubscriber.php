@@ -3,6 +3,7 @@
 namespace StoreCredit\Subscriber;
 
 use Exception;
+use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use StoreCredit\Controller\StoreCreditController;
@@ -43,20 +44,22 @@ class OrderRefundSubscriber implements EventSubscriberInterface
         $criteria->addAssociation('lineItems');
         $criteria->addAssociation('transactions.paymentMethod');
         $criteria->addAssociation('transactions.stateMachineState');
+        /** @var OrderEntity $order */
         $order        = $this->orderRepository->search($criteria, $context)->last();
         $paymentState = $order->getTransactions()->last()?->getStateMachineState()?->getTechnicalName();
 
-        if (!$order || $paymentState !== 'paid') {
+        if ($paymentState !== 'paid') {
             return;
         }
 
         $returnCriteria = new Criteria();
         $returnCriteria->addFilter(new EqualsFilter('orderId', $orderId));
         $returnCriteria->addAssociation('lineItems.lineItem');
+        /** @var OrderEntity $orderReturn */
         $orderReturn = $this->orderReturnRepository->search($returnCriteria, $context)->last();
 
         $returnLineItemData = [];
-
+        /* @phpstan-ignore-next-line */
         if ($orderReturn) {
             $returnLineItems    = $orderReturn->getLineItems();
             $returnLineItemData = $returnLineItems->map(function ($lineItem) {
@@ -85,7 +88,7 @@ class OrderRefundSubscriber implements EventSubscriberInterface
 
         $request = new Request([], $storeCreditsReqData);
         try {
-            $response = $this->storeCreditController->addCredit($request);
+            $response = $this->storeCreditController->addCredit($request, $context);
             if ($response->getStatusCode() === 200) {
                 echo('Credit added to order with Order Number: ' . $event->getOrder()->getOrderNumber());
             }

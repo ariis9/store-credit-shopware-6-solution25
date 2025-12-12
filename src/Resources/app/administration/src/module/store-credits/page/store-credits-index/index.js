@@ -113,7 +113,6 @@ Component.register('store-credits-index', {
         },
 
         openAddCustomerModal() {
-            console.log("Opening Add Customer Modal");
             this.selectedNewCustomer = null;
             this.newCustomerAmount = 0;
             this.addCustomerModalVisible = true;
@@ -297,7 +296,6 @@ Component.register('store-credits-index', {
             });
         },
         openDeleteModal(storeCredit) {
-            console.log('Opening delete modal for:', storeCredit); // Debugging
             this.selectedStoreCredit = { ...storeCredit };
             this.confirmDeleteModalVisible = true;
         },

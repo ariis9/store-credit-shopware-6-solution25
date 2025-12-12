@@ -2,6 +2,7 @@
 
 namespace StoreCredit\Core\Content\StoreCredit;
 
+use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityIdTrait;
 
@@ -18,6 +19,10 @@ class StoreCreditEntity extends Entity
      * @var string
      */
     protected string $customerId;
+    /**
+     * @var CustomerEntity|null
+     */
+    protected ?CustomerEntity $customer = null;
     /**
      * @var string|null
      */
@@ -58,6 +63,16 @@ class StoreCreditEntity extends Entity
         $this->customerId = $customerId;
     }
 
+    public function getCustomer(): ?CustomerEntity
+    {
+        return $this->customer;
+    }
+
+    public function setCustomer(?CustomerEntity $customer): void
+    {
+        $this->customer = $customer;
+    }
+
     public function getCurrencyId(): ?string
     {
         return $this->currencyId;
@@ -76,25 +91,5 @@ class StoreCreditEntity extends Entity
     public function setBalance(float $balance): void
     {
         $this->balance = $balance;
-    }
-
-    public function getCreatedAt(): ?\DateTimeInterface
-    {
-        return $this->createdAt;
-    }
-
-    public function setCreatedAt(?\DateTimeInterface $createdAt): void
-    {
-        $this->createdAt = $createdAt;
-    }
-
-    public function getUpdatedAt(): ?\DateTimeInterface
-    {
-        return $this->updatedAt;
-    }
-
-    public function setUpdatedAt(?\DateTimeInterface $updatedAt): void
-    {
-        $this->updatedAt = $updatedAt;
     }
 }

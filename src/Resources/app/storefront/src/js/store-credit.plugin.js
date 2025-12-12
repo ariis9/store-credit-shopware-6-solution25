@@ -1,6 +1,6 @@
-import Plugin from 'src/plugin-system/plugin.class';
+window.Plugin = PluginBaseClass;
 
-export default class StoreCredit extends Plugin {
+export default class StoreCredit extends PluginBaseClass {
     init() {
         this.inputField = this.el.querySelector('#storeCreditAmount');
         this.button = this.el.querySelector('#applyCreditButton');

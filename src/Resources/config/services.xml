@@ -67,12 +67,13 @@
         <service id="StoreCredit\EventSubscriber\StoreCreditCheckoutSubscriber">
             <argument type="service" id="StoreCredit\Service\StoreCreditManager"/>
             <argument type="service" id="Shopware\Core\Checkout\Cart\SalesChannel\CartService"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <tag name="kernel.event_subscriber"/>
         </service>
 
         <service id="StoreCredit\Command\OrderStateInstallerCommand">
             <argument type="service" id="StoreCredit\Service\OrderStateInstaller"/>
-            <tag name="console.command" />
+            <tag name="console.command" command="store-credit:install-order-state" />
         </service>
 
         <service id="StoreCredit\Subscriber\ConfigCommandSubscriber">
