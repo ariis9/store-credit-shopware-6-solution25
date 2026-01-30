@@ -17,7 +17,6 @@ class Migration1769640000CustomerStoreCreditValueCustomField extends MigrationSt
 
     public function update(Connection $connection): void
     {
-        // If Shopware is older / tables not present, just skip safely.
         if (!$this->tableExists($connection, 'custom_field_set')
             || !$this->tableExists($connection, 'custom_field')
             || !$this->tableExists($connection, 'custom_field_set_relation')

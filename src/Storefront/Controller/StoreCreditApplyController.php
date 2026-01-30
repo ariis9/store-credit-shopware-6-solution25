@@ -18,7 +18,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 #[Package('checkout')]
 #[Route(defaults: ['_routeScope' => ['storefront']])]
-class StoreCreditApplyController extends StorefrontController
+class
+StoreCreditApplyController extends StorefrontController
 {
     private CartService $cartService;
     private SystemConfigService $systemConfigurationService;

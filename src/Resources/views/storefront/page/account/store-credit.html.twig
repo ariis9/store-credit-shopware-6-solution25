@@ -57,11 +57,11 @@
                                         <td>{{ credit.createdAt|date('Y-m-d H:i') }}</td>
                                         <td>
                                             {% if credit.actionType == 'add' %}
-                                                +{{ credit.amount|currency }}
+                                                +{{ credit.amount }}
                                             {% elseif credit.actionType == 'deduct' %}
-                                                -{{ credit.amount|currency }}
+                                                -{{ credit.amount }}
                                             {% else %}
-                                                {{ credit.amount|currency }}
+                                                {{ credit.amount }}
                                             {% endif %}
                                         </td>
 
