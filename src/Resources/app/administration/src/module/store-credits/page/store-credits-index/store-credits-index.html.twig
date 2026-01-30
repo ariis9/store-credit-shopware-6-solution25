@@ -22,6 +22,10 @@
 
             >
 
+                <template #column-credits="{ item }">
+                    {{ formatCredits(item.credits) }}
+                </template>
+
                 <template #column-balance="{ item }">
                     {{ formatCurrency(item.balance) }}
                 </template>
@@ -33,7 +37,7 @@
                             variant="success"
                             @click="openAddBalanceModal(item)"
                     >
-                        Add Balance
+                        Add Credits
                     </sw-button>
                     <sw-button
                             size="small"
@@ -79,16 +83,16 @@
 
             <sw-modal
                     v-if="addBalanceModalVisible"
-                    title="Add Balance"
+                    title="Add Credits"
                     @modal-close="addBalanceModalVisible = false"
             >
                 <sw-number-field
                         v-model:value="amount"
-                        label="Amount"
+                        label="Credits"
                         :min="0.00"
                         :step="0.00"
                         :number-type="'float'"
-                        placeholder="Enter amount"></sw-number-field>
+                        placeholder="Enter credits"></sw-number-field>
                 <sw-text-field v-model:value="reason" label="Reason" />
                 <sw-button @click="addBalance" size="small" variant="primary">
                     Submit

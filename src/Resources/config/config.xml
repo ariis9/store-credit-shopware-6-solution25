@@ -22,6 +22,16 @@
     </card>
 
     <card>
+        <title>Store Credit Value</title>
+
+        <input-field type="float">
+            <name>defaultValuePerCredit</name>
+            <label lang="en-GB">Default value per 1 credit</label>
+            <default>1</default>
+        </input-field>
+    </card>
+
+    <card>
         <title>Product Restrictions</title>
 
         <component name="sw-entity-multi-id-select">

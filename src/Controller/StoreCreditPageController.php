@@ -8,6 +8,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use StoreCredit\Core\Content\StoreCredit\StoreCreditEntity;
+use StoreCredit\Service\StoreCreditManager;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Shopware\Storefront\Controller\StorefrontController;
@@ -18,12 +19,18 @@ class StoreCreditPageController extends StorefrontController
     private EntityRepository $storeCreditRepository;
 
     private EntityRepository $storeCreditHistoryRepository;
+    private StoreCreditManager $storeCreditManager;
 
 
-    public function __construct(EntityRepository $storeCreditRepository, EntityRepository $storeCreditHistoryRepository)
+    public function __construct(
+        EntityRepository $storeCreditRepository,
+        EntityRepository $storeCreditHistoryRepository,
+        StoreCreditManager $storeCreditManager
+    )
     {
         $this->storeCreditRepository        = $storeCreditRepository;
         $this->storeCreditHistoryRepository = $storeCreditHistoryRepository;
+        $this->storeCreditManager           = $storeCreditManager;
     }
 
     #[Route(path: '/account/store-credit', name: 'frontend.account.store-credit.page', methods: ['GET'])]
@@ -41,6 +48,8 @@ class StoreCreditPageController extends StorefrontController
         /** @var StoreCreditEntity $storeCredit */
         $storeCredit       = $storeCreditResult->first();
 
+        $balance = $this->storeCreditManager->getCreditBalance($customerId, $context->getContext());
+
         $historyCriteria = new Criteria();
         $historyCriteria->addSorting(new FieldSorting('createdAt', 'DESC'));
         /* @phpstan-ignore-next-line */
@@ -49,6 +58,7 @@ class StoreCreditPageController extends StorefrontController
 
         return $this->renderStorefront('@StoreCredit/storefront/page/account/store-credit.html.twig', [
             'storeCredit'         => $storeCredit,
+            'storeCreditBalance'  => $balance['balanceAmount'] ?? 0.0,
             'storeCreditsHistory' => $storeCreditsHistory
         ]);
     }

@@ -12,15 +12,16 @@ use Shopware\Core\Checkout\Order\Event\OrderStateMachineStateChangeEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Symfony\Component\HttpFoundation\Request;
 
-class OrderRefundSubscriber implements EventSubscriberInterface
+class
+OrderRefundSubscriber implements EventSubscriberInterface
 {
     private EntityRepository $orderRepository;
-    private EntityRepository $orderReturnRepository;
+    private ?EntityRepository $orderReturnRepository;
     private StoreCreditController $storeCreditController;
 
     public function __construct(
         EntityRepository $orderRepository,
-        EntityRepository $orderReturnRepository,
+        ?EntityRepository $orderReturnRepository,
         StoreCreditController $storeCreditController,
     ) {
         $this->orderRepository       = $orderRepository;
@@ -37,6 +38,11 @@ class OrderRefundSubscriber implements EventSubscriberInterface
 
     public function onStoreCreditStateEnter(OrderStateMachineStateChangeEvent $event): void
     {
+        if ($this->orderReturnRepository === null) {
+
+            return;
+        }
+
         $orderId = $event->getOrder()->getId();
         $context = $event->getContext();
 

@@ -63,9 +63,10 @@ class StoreCreditController
             $balance = $this->storeCreditManager->getCreditBalance($customerId, $context);
 
             return new JsonResponse([
-                'success'    => true,
-                'balance'    => $balance['balanceAmount'],
-                'currencyId' => $balance['balanceCurrencyId'],
+                'success'        => true,
+                'balance'        => $balance['balanceAmount'],
+                'balanceCredits' => $balance['balanceCredits'],
+                'currencyId'     => $balance['balanceCurrencyId'],
             ]);
         } catch (\Exception $e) {
             return new JsonResponse(['success' => false, 'message' => $e->getMessage()], 400);

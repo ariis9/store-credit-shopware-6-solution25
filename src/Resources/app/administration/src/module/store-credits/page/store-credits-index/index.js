@@ -27,9 +27,11 @@ Component.register('store-credits-index', {
             selectedNewCustomer: null,
             selectedStoreCredit: null, 
             newCustomerAmount: 0,
+            defaultValuePerCredit: 1.0,
             columns: [
                 { property: 'customerFullName', label: 'Customer Full Name', allowResize: true, sortable: true },
-                { property: 'balance', label: 'Balance', allowResize: true },
+                { property: 'credits', label: 'Credits', allowResize: true },
+                { property: 'balance', label: 'Balance ($)', allowResize: true },
                 {
                     property: 'actions',
                     label: 'Balance Actions',
@@ -48,30 +50,63 @@ Component.register('store-credits-index', {
     },
 
     methods: {
-        fetchStoreCredits() {
+        async fetchStoreCredits() {
             this.isLoading = true;
 
             const criteria = new Criteria();
             criteria.addAssociation('customer');
 
-            this.repository.search(criteria, Shopware.Context.api)
-                .then((result) => {
-                    this.storeCredits = result.map((credit) => ({
+            try {
+                const result = await this.repository.search(criteria, Shopware.Context.api);
+
+                // Get default value from system config
+                let defaultValuePerCredit = this.defaultValuePerCredit || 1.0;
+                try {
+                    const configResponse = await fetch('/api/_action/system-config?domain=StoreCredit.config', {
+                        headers: {
+                            'Authorization': `Bearer ${Shopware.Context.api.authToken.access}`,
+                        },
+                    });
+                    if (configResponse.ok) {
+                        const configData = await configResponse.json();
+                        const defaultValue = configData['StoreCredit.config.defaultValuePerCredit'];
+                        if (defaultValue && parseFloat(defaultValue) > 0) {
+                            defaultValuePerCredit = parseFloat(defaultValue);
+                            this.defaultValuePerCredit = defaultValuePerCredit;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch default value per credit, using 1.0', e);
+                }
+                
+                // Calculate balance for each customer
+                this.storeCredits = result.map((credit) => {
+                    const credits = credit.balance || 0;
+                    const customer = credit.customer;
+                    const customFields = customer?.customFields || {};
+                    const valuePerCredit = customFields.store_credit_value_per_unit 
+                        ? parseFloat(customFields.store_credit_value_per_unit) 
+                        : defaultValuePerCredit;
+                    
+                    // Ensure valuePerCredit is valid
+                    const validValuePerCredit = (valuePerCredit > 0) ? valuePerCredit : 1.0;
+                    const balanceAmount = credits * validValuePerCredit;
+                    
+                    return {
                         id: credit.id,
                         customerFullName: `${credit.customer.firstName} ${credit.customer.lastName}`,
-                        balance: credit.balance || 0,
+                        credits: credits,
+                        balance: balanceAmount,
                         customerId: credit.customerId,
                         storeCreditId: credit.id,
-                        // actions: '', // Placeholder to prevent grid misalignment
-                        // history: '', // Placeholder to prevent grid misalignment
-                    }));
-                })
-                .catch((error) => {
-                    console.error('Error fetching store credits:', error);
-                })
-                .finally(() => {
-                    this.isLoading = false;
+                        valuePerCredit: validValuePerCredit,
+                    };
                 });
+            } catch (error) {
+                console.error('Error fetching store credits:', error);
+            } finally {
+                this.isLoading = false;
+            }
         },
 
         formatCurrency(value) {
@@ -79,6 +114,11 @@ Component.register('store-credits-index', {
                 style: 'currency',
                 currency: 'USD',
             }).format(value);
+        },
+
+        formatCredits(value) {
+            
+            return parseFloat(value || 0).toFixed(2);
         },
 
         fetchCustomers() {
@@ -90,12 +130,29 @@ Component.register('store-credits-index', {
                     this.customers = result.map(customer => ({
                         id: customer.id,
                         name: `${customer.firstName} ${customer.lastName}`,
-
+                        valuePerCredit: this.getCustomerValuePerCredit(customer),
                     }));
                 })
                 .catch((error) => {
                     console.error('Error fetching customers:', error);
                 });
+        },
+
+        getCustomerValuePerCredit(customer) {
+            const customFields = customer?.customFields || {};
+            const configuredDefault = this.defaultValuePerCredit && this.defaultValuePerCredit > 0
+                ? this.defaultValuePerCredit
+                : 1.0;
+
+            let valuePerCredit = customFields.store_credit_value_per_unit
+                ? parseFloat(customFields.store_credit_value_per_unit)
+                : configuredDefault;
+
+            if (!valuePerCredit || valuePerCredit <= 0 || Number.isNaN(valuePerCredit)) {
+                valuePerCredit = 1.0;
+            }
+
+            return valuePerCredit;
         },
 
         openAddBalanceModal(customer) {
@@ -121,15 +178,18 @@ Component.register('store-credits-index', {
 
 
         addBalance() {
-            const amount = parseFloat(this.amount);
+            const credits = parseFloat(this.amount);
 
-            if (isNaN(amount) || amount <= 0) {
+            if (isNaN(credits) || credits <= 0) {
                 this.createNotificationError({
                     title: 'Error',
-                    message: 'Amount must be greater than zero.',
+                    message: 'Credits must be greater than zero.',
                 });
                 return;
             }
+
+            const valuePerCredit = this.selectedCustomer?.valuePerCredit || this.defaultValuePerCredit || 1.0;
+            const amount = credits * valuePerCredit;
 
             const payload = {
                 customerId: this.selectedCustomer.customerId,
@@ -169,15 +229,18 @@ Component.register('store-credits-index', {
         },
 
         deductBalance() {
-            const amount = parseFloat(this.amount);
+            const credits = parseFloat(this.amount);
 
-            if (isNaN(amount) || amount <= 0) {
+            if (isNaN(credits) || credits <= 0) {
                 this.createNotificationError({
                     title: 'Error',
-                    message: 'Amount must be greater than zero.',
+                    message: 'Credits must be greater than zero.',
                 });
                 return;
             }
+
+            const valuePerCredit = this.selectedCustomer?.valuePerCredit || this.defaultValuePerCredit || 1.0;
+            const amount = credits * valuePerCredit;
 
             const payload = {
                 customerId: this.selectedCustomer.customerId,
@@ -218,7 +281,7 @@ Component.register('store-credits-index', {
         },
 
         addCustomerCredit() {
-            const amount = parseFloat(this.newCustomerAmount);
+            const credits = parseFloat(this.newCustomerAmount);
 
             if (!this.selectedNewCustomer) {
                 this.createNotificationError({
@@ -228,13 +291,19 @@ Component.register('store-credits-index', {
                 return;
             }
 
-            if (isNaN(amount) || amount <= 0) {
+            if (isNaN(credits) || credits <= 0) {
                 this.createNotificationError({
                     title: 'Error',
-                    message: 'Amount must be greater than zero.',
+                    message: 'Credits must be greater than zero.',
                 });
                 return;
             }
+
+            const selectedCustomer = this.customers.find(
+                (customer) => customer.id === this.selectedNewCustomer,
+            );
+            const valuePerCredit = selectedCustomer?.valuePerCredit || this.defaultValuePerCredit || 1.0;
+            const amount = credits * valuePerCredit;
 
             fetch('/api/store-credit/add', {
                 method: 'POST',
@@ -246,7 +315,7 @@ Component.register('store-credits-index', {
                 body: JSON.stringify({
                     customerId: this.selectedNewCustomer,
                     amount: amount,
-                    reason: 'Admin added store credit',
+                    reason: 'Admin added store credits',
                 }),
             })
                 .then((response) => {

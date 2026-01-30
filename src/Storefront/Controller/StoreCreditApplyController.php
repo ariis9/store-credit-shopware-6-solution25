@@ -6,13 +6,11 @@ use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Cart\Price\Struct\AbsolutePriceDefinition;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use Shopware\Core\Framework\Context;
-use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
-use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\Log\Package;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Storefront\Controller\StorefrontController;
+use StoreCredit\Service\StoreCreditManager;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -23,18 +21,18 @@ use Symfony\Component\Routing\Attribute\Route;
 class StoreCreditApplyController extends StorefrontController
 {
     private CartService $cartService;
-    private EntityRepository $storeCreditRepository;
     private SystemConfigService $systemConfigurationService;
+    private StoreCreditManager $storeCreditManager;
     private string $storeCreditLineItemId = 'store-credit-discount';
 
     public function __construct(
         CartService $cartService,
-        EntityRepository $storeCreditRepository,
-        SystemConfigService $systemConfigurationService
+        SystemConfigService $systemConfigurationService,
+        StoreCreditManager $storeCreditManager
     ) {
         $this->cartService = $cartService;
-        $this->storeCreditRepository = $storeCreditRepository;
         $this->systemConfigurationService = $systemConfigurationService;
+        $this->storeCreditManager = $storeCreditManager;
     }
 
     #[Route(path: '/store-credit-apply', name: 'frontend.store.credit.apply', defaults: ['_routeScope' => ['storefront']], methods: ['POST'])]
@@ -116,13 +114,8 @@ class StoreCreditApplyController extends StorefrontController
         if (!$customerId) {
             return 0.0;
         }
-
-        $criteria = new Criteria();
-        $criteria->addFilter(new EqualsFilter('customerId', $customerId));
-        $result = $this->storeCreditRepository->search($criteria, $context);
-        $storeCreditEntity = $result->first();
-
-        return $storeCreditEntity ? (float)$storeCreditEntity->get('balance') : 0.0;
+        $balance = $this->storeCreditManager->getCreditBalance($customerId, $context);
+        return (float) ($balance['balanceAmount'] ?? 0.0);
     }
 
     private function hasPremiumProtectionFee(SalesChannelContext $context): bool
