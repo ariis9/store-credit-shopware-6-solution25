@@ -14,17 +14,20 @@ class StoreCreditManager
     private EntityRepository $storeCreditRepository;
     private EntityRepository $storeCreditHistoryRepository;
     private EntityRepository $customerRepository;
+    private EntityRepository $customerGroupRepository;
     private SystemConfigService $systemConfigService;
 
     public function __construct(
         EntityRepository $storeCreditRepository,
         EntityRepository $storeCreditHistoryRepository,
         EntityRepository $customerRepository,
+        EntityRepository $customerGroupRepository,
         SystemConfigService $systemConfigService,
     ) {
         $this->storeCreditRepository        = $storeCreditRepository;
         $this->storeCreditHistoryRepository = $storeCreditHistoryRepository;
         $this->customerRepository           = $customerRepository;
+        $this->customerGroupRepository      = $customerGroupRepository;
         $this->systemConfigService          = $systemConfigService;
     }
 
@@ -64,6 +67,7 @@ class StoreCreditManager
                 'id'            => $historyId,
                 'storeCreditId' => $storeCreditId,
                 'orderId'       => $orderId,
+                
                 'amount'        => $amount,
                 'currencyId'    => $currencyId,
                 'reason'        => $reason ?: 'Not specified',
@@ -101,7 +105,7 @@ class StoreCreditManager
                         'id'            => $historyId,
                         'storeCreditId' => $storeCreditId,
                         'orderId'       => $orderId,
-
+                        
                         'amount'        => $amount,
                         'currencyId'    => $currencyId,
                         'reason'        => $reason ?: 'Not specified',
@@ -125,6 +129,7 @@ class StoreCreditManager
         $credits = $storeCreditEntity ? (float) $storeCreditEntity->get('balance') : 0.0;
 
         return [
+            
             'balanceCredits'    => $credits,
             'balanceAmount'     => $credits * $valuePerCredit,
             'balanceCurrencyId' => $storeCreditEntity ? $storeCreditEntity->get('currencyId') : null,
@@ -161,7 +166,22 @@ class StoreCreditManager
         $criteria = new Criteria([$customerId]);
         $customer = $this->customerRepository->search($criteria, $context)->first();
 
-        $customFields = $customer ? ($customer->get('customFields') ?? []) : [];
+        $groupId = $customer?->getGroupId();
+        if ($groupId) {
+            $groupCriteria = new Criteria([$groupId]);
+            $group = $this->customerGroupRepository->search($groupCriteria, $context)->first();
+            if ($group !== null) {
+                $groupCustomFields = $group->get('customFields') ?? [];
+                $groupValue = is_array($groupCustomFields) ? ($groupCustomFields['store_credit_value_per_unit'] ?? null) : null;
+
+                $groupValue = is_numeric($groupValue) ? (float) $groupValue : 0.0;
+                if ($groupValue > 0) {
+                    return $groupValue;
+                }
+            }
+        }
+
+        $cutomFields = $customer ? ($customer->get('customFields') ?? []) : [];
         $value = is_array($customFields) ? ($customFields['store_credit_value_per_unit'] ?? null) : null;
 
         $value = is_numeric($value) ? (float) $value : 0.0;

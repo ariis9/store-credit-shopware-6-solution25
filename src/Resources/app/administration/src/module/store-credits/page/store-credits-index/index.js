@@ -55,6 +55,7 @@ Component.register('store-credits-index', {
 
             const criteria = new Criteria();
             criteria.addAssociation('customer');
+            criteria.addAssociation('customer.group');
 
             try {
                 const result = await this.repository.search(criteria, Shopware.Context.api);
@@ -83,15 +84,27 @@ Component.register('store-credits-index', {
                 this.storeCredits = result.map((credit) => {
                     const credits = credit.balance || 0;
                     const customer = credit.customer;
-                    const customFields = customer?.customFields || {};
-                    const valuePerCredit = customFields.store_credit_value_per_unit 
-                        ? parseFloat(customFields.store_credit_value_per_unit) 
-                        : defaultValuePerCredit;
-                    
-                    // Ensure valuePerCredit is valid
-                    const validValuePerCredit = (valuePerCredit > 0) ? valuePerCredit : 1.0;
-                    const balanceAmount = credits * validValuePerCredit;
-                    
+
+                    const customerCustomFields = customer?.customFields || {};
+                    const groupCustomFields = customer?.group?.customFields || {};
+
+                    // Resolve value per credit: customer group override > customer override > configured default
+                    let valuePerCredit;
+
+                    if (groupCustomFields.store_credit_value_per_unit) {
+                        valuePerCredit = parseFloat(groupCustomFields.store_credit_value_per_unit);
+                    } else if (customerCustomFields.store_credit_value_per_unit) {
+                        valuePerCredit = parseFloat(customerCustomFields.store_credit_value_per_unit);
+                    } else {
+                        valuePerCredit = defaultValuePerCredit;
+                    }
+
+                    if (!valuePerCredit || valuePerCredit <= 0 || Number.isNaN(valuePerCredit)) {
+                        valuePerCredit = 1.0;
+                    }
+
+                    const balanceAmount = credits * valuePerCredit;
+
                     return {
                         id: credit.id,
                         customerFullName: `${credit.customer.firstName} ${credit.customer.lastName}`,
@@ -99,7 +112,7 @@ Component.register('store-credits-index', {
                         balance: balanceAmount,
                         customerId: credit.customerId,
                         storeCreditId: credit.id,
-                        valuePerCredit: validValuePerCredit,
+                        valuePerCredit: valuePerCredit,
                     };
                 });
             } catch (error) {
@@ -124,6 +137,7 @@ Component.register('store-credits-index', {
         fetchCustomers() {
             const criteria = new Criteria();
             criteria.addSorting(Criteria.sort('lastName', 'ASC'));
+            criteria.addAssociation('group');
 
             this.repositoryFactory.create('customer').search(criteria, Shopware.Context.api)
                 .then((result) => {
@@ -140,13 +154,20 @@ Component.register('store-credits-index', {
 
         getCustomerValuePerCredit(customer) {
             const customFields = customer?.customFields || {};
+            const groupCustomFields = customer?.group?.customFields || {};
             const configuredDefault = this.defaultValuePerCredit && this.defaultValuePerCredit > 0
                 ? this.defaultValuePerCredit
                 : 1.0;
 
-            let valuePerCredit = customFields.store_credit_value_per_unit
-                ? parseFloat(customFields.store_credit_value_per_unit)
-                : configuredDefault;
+            let valuePerCredit;
+
+            if (groupCustomFields.store_credit_value_per_unit) {
+                valuePerCredit = parseFloat(groupCustomFields.store_credit_value_per_unit);
+            } else if (customFields.store_credit_value_per_unit) {
+                valuePerCredit = parseFloat(customFields.store_credit_value_per_unit);
+            } else {
+                valuePerCredit = configuredDefault;
+            }
 
             if (!valuePerCredit || valuePerCredit <= 0 || Number.isNaN(valuePerCredit)) {
                 valuePerCredit = 1.0;

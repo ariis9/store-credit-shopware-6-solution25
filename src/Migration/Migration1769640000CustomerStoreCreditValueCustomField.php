@@ -17,6 +17,7 @@ class Migration1769640000CustomerStoreCreditValueCustomField extends MigrationSt
 
     public function update(Connection $connection): void
     {
+        
         if (!$this->tableExists($connection, 'custom_field_set')
             || !$this->tableExists($connection, 'custom_field')
             || !$this->tableExists($connection, 'custom_field_set_relation')
@@ -55,7 +56,7 @@ class Migration1769640000CustomerStoreCreditValueCustomField extends MigrationSt
                         'en-GB' => 'Value per 1 credit',
                     ],
                     'helpText' => [
-                        'en-GB' => 'Overrides the default value per credit for this customer (e.g. 1 = $1 per credit, 3 = $3 per credit).',
+                        'en-GB' => 'Overrides the default value per credit. Can be set on customers and customer groups (e.g. 1 = $1 per credit, 3 = $3 per credit).',
                     ],
                     'componentName' => 'sw-field',
                     'customFieldType' => 'float',
@@ -66,13 +67,14 @@ class Migration1769640000CustomerStoreCreditValueCustomField extends MigrationSt
             ]);
         }
 
-
+        
         $this->ensureSetEntityRelation($connection, $setId, 'customer');
+        $this->ensureSetEntityRelation($connection, $setId, 'customer_group');
     }
 
     public function updateDestructive(Connection $connection): void
     {
-
+        
     }
 
     private function tableExists(Connection $connection, string $table): bool
@@ -91,7 +93,6 @@ class Migration1769640000CustomerStoreCreditValueCustomField extends MigrationSt
         return is_string($id) ? $id : null;
     }
 
-
     private function insert(Connection $connection, string $table, array $data): void
     {
         $schemaManager = $connection->createSchemaManager();
@@ -104,7 +105,7 @@ class Migration1769640000CustomerStoreCreditValueCustomField extends MigrationSt
             }
         }
 
-
+        
         if ($filtered === []) {
             return;
         }
